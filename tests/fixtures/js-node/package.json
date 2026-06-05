@@ -1,0 +1,8 @@
+{
+  "name": "plain-js",
+  "description": "A plain JavaScript project",
+  "scripts": {
+    "test": "node --test",
+    "start": "node index.js"
+  }
+}

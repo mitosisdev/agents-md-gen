@@ -1,0 +1,8 @@
+{
+  "name": "my-lib",
+  "description": "A test lib",
+  "scripts": {
+    "test": "bun test",
+    "build": "bun build"
+  }
+}
