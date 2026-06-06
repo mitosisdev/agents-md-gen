@@ -1,0 +1,8 @@
+{
+  "name": "minimal-pkg",
+  "version": "1.0.0",
+  "description": "A minimal package",
+  "scripts": {
+    "build": "tsc"
+  }
+}

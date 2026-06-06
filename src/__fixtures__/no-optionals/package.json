@@ -1,0 +1,6 @@
+{
+  "name": "no-optionals-pkg",
+  "version": "0.1.0",
+  "description": "Package with no optional files",
+  "scripts": {}
+}
