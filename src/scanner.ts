@@ -14,6 +14,12 @@ export interface RepoContext {
   readmeSummary: string;
   existingAgentContext: string | null;
   hasTsConfig: boolean;
+  /** Top-level directories detected in the repo root (e.g. "src", "tests", "docs"). */
+  dirs: string[];
+  /** Entry point resolved from package.json `main` or `module` field. */
+  entryPoint?: string;
+  /** CLI bin entries from package.json `bin` field (name → path). */
+  binEntries: Record<string, string>;
 }
 
 async function fileExists(path: string): Promise<boolean> {
@@ -31,6 +37,41 @@ async function readTextFile(path: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/** Known layout directories to probe, in display order. */
+const LAYOUT_DIRS = [
+  "src",
+  "lib",
+  "packages",
+  "apps",
+  "bin",
+  "cli",
+  "tests",
+  "test",
+  "docs",
+] as const;
+
+/**
+ * Normalise package.json `bin` to a Record<string, string>.
+ * Accepts a plain string (single unnamed binary) or an object.
+ */
+function normaliseBin(
+  bin: unknown,
+  pkgName: string,
+): Record<string, string> {
+  if (!bin) return {};
+  if (typeof bin === "string") {
+    return pkgName ? { [pkgName]: bin } : {};
+  }
+  if (typeof bin === "object" && !Array.isArray(bin)) {
+    const result: Record<string, string> = {};
+    for (const [k, v] of Object.entries(bin as Record<string, unknown>)) {
+      if (typeof v === "string") result[k] = v;
+    }
+    return result;
+  }
+  return {};
 }
 
 export async function scanRepo(dir: string): Promise<RepoContext> {
@@ -78,6 +119,27 @@ export async function scanRepo(dir: string): Promise<RepoContext> {
     srcFiles = [];
   }
 
+  // Detect common layout directories
+  const dirs: string[] = [];
+  for (const d of LAYOUT_DIRS) {
+    if (await fileExists(join(dir, d))) {
+      dirs.push(d);
+    }
+  }
+
+  // Entry point from package.json `main` or `module`
+  const entryPoint: string | undefined =
+    typeof pkg.main === "string"
+      ? pkg.main
+      : typeof pkg.module === "string"
+      ? pkg.module
+      : typeof pkg.exports === "string"
+      ? pkg.exports
+      : undefined;
+
+  // CLI bin entries
+  const binEntries = normaliseBin(pkg.bin, name);
+
   return {
     name,
     description,
@@ -90,5 +152,8 @@ export async function scanRepo(dir: string): Promise<RepoContext> {
     readmeSummary,
     existingAgentContext,
     hasTsConfig,
+    dirs,
+    entryPoint,
+    binEntries,
   };
 }

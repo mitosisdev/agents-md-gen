@@ -22,6 +22,9 @@ const fullContext: RepoContext = {
   readmeSummary: "My App is a great project.",
   existingAgentContext: "# Agent Context\nUse bun.",
   hasTsConfig: true,
+  dirs: ["src", "tests", "docs"],
+  entryPoint: "src/index.ts",
+  binEntries: { "my-cli": "bin/cli.ts" },
 };
 
 const minimalContext: RepoContext = {
@@ -36,6 +39,9 @@ const minimalContext: RepoContext = {
   readmeSummary: "",
   existingAgentContext: null,
   hasTsConfig: false,
+  dirs: [],
+  entryPoint: undefined,
+  binEntries: {},
 };
 
 describe("generateAgentsMd — section headers", () => {
@@ -187,5 +193,103 @@ describe("generateAgentsMd — Project Overview content", () => {
   test("includes language", () => {
     const md = generateAgentsMd(fullContext);
     expect(md).toContain("typescript");
+  });
+});
+
+describe("generateAgentsMd — Architecture section: directory layout", () => {
+  test("lists detected directories as bullets", () => {
+    const md = generateAgentsMd(fullContext);
+    const start = md.indexOf("## Architecture");
+    const end = md.indexOf("## Key Conventions");
+    const archSection = md.slice(start, end);
+    expect(archSection).toContain("`src/`");
+    expect(archSection).toContain("`tests/`");
+    expect(archSection).toContain("`docs/`");
+  });
+
+  test("includes human-readable label for src/", () => {
+    const md = generateAgentsMd(fullContext);
+    const start = md.indexOf("## Architecture");
+    const end = md.indexOf("## Key Conventions");
+    const archSection = md.slice(start, end);
+    expect(archSection).toContain("Main source tree");
+  });
+
+  test("includes human-readable label for tests/", () => {
+    const md = generateAgentsMd(fullContext);
+    const start = md.indexOf("## Architecture");
+    const end = md.indexOf("## Key Conventions");
+    const archSection = md.slice(start, end);
+    expect(archSection).toContain("Test suite");
+  });
+
+  test("shows fallback when no dirs detected", () => {
+    const md = generateAgentsMd(minimalContext);
+    const start = md.indexOf("## Architecture");
+    const end = md.indexOf("## Key Conventions");
+    const archSection = md.slice(start, end);
+    expect(archSection).toContain("No standard directories detected");
+  });
+});
+
+describe("generateAgentsMd — Architecture section: entry point", () => {
+  test("shows entry point when present", () => {
+    const md = generateAgentsMd(fullContext);
+    const start = md.indexOf("## Architecture");
+    const end = md.indexOf("## Key Conventions");
+    const archSection = md.slice(start, end);
+    expect(archSection).toContain("`src/index.ts`");
+    expect(archSection).toContain("Entry point");
+  });
+
+  test("omits entry point line when not set", () => {
+    const md = generateAgentsMd(minimalContext);
+    const start = md.indexOf("## Architecture");
+    const end = md.indexOf("## Key Conventions");
+    const archSection = md.slice(start, end);
+    expect(archSection).not.toContain("Entry point");
+  });
+
+  test("entry point references package.json main field", () => {
+    const md = generateAgentsMd(fullContext);
+    const start = md.indexOf("## Architecture");
+    const end = md.indexOf("## Key Conventions");
+    const archSection = md.slice(start, end);
+    expect(archSection).toContain("package.json");
+    expect(archSection).toContain("main");
+  });
+});
+
+describe("generateAgentsMd — Architecture section: bin entries", () => {
+  test("shows CLI bin path when single entry", () => {
+    const md = generateAgentsMd(fullContext);
+    const start = md.indexOf("## Architecture");
+    const end = md.indexOf("## Key Conventions");
+    const archSection = md.slice(start, end);
+    expect(archSection).toContain("`bin/cli.ts`");
+    expect(archSection).toContain("CLI");
+  });
+
+  test("omits CLI line when no bin entries", () => {
+    const md = generateAgentsMd(minimalContext);
+    const start = md.indexOf("## Architecture");
+    const end = md.indexOf("## Key Conventions");
+    const archSection = md.slice(start, end);
+    expect(archSection).not.toContain("CLI");
+  });
+
+  test("shows bin name for multiple CLI entries", () => {
+    const ctx: RepoContext = {
+      ...minimalContext,
+      binEntries: { foo: "bin/foo.ts", bar: "bin/bar.ts" },
+    };
+    const md = generateAgentsMd(ctx);
+    const start = md.indexOf("## Architecture");
+    const end = md.indexOf("## Key Conventions");
+    const archSection = md.slice(start, end);
+    expect(archSection).toContain("`foo`");
+    expect(archSection).toContain("`bar`");
+    expect(archSection).toContain("`bin/foo.ts`");
+    expect(archSection).toContain("`bin/bar.ts`");
   });
 });
