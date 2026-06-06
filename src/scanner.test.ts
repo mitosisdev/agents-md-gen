@@ -86,3 +86,73 @@ describe("scanRepo — full fixture", () => {
     expect(ctx.devDependencies).toContain("@types/node");
   });
 });
+
+describe("scanRepo — architecture fields (dirs, entryPoint, binEntries)", () => {
+  test("detects src/ in dirs for full fixture", async () => {
+    const ctx = await scanRepo(join(FIXTURES, "full"));
+    expect(ctx.dirs).toContain("src");
+  });
+
+  test("detects tests/ in dirs for full fixture", async () => {
+    const ctx = await scanRepo(join(FIXTURES, "full"));
+    expect(ctx.dirs).toContain("tests");
+  });
+
+  test("detects docs/ in dirs for full fixture", async () => {
+    const ctx = await scanRepo(join(FIXTURES, "full"));
+    expect(ctx.dirs).toContain("docs");
+  });
+
+  test("detects bin/ in dirs for full fixture", async () => {
+    const ctx = await scanRepo(join(FIXTURES, "full"));
+    expect(ctx.dirs).toContain("bin");
+  });
+
+  test("dirs are in the canonical layout order", async () => {
+    const ctx = await scanRepo(join(FIXTURES, "full"));
+    const srcIdx = ctx.dirs.indexOf("src");
+    const binIdx = ctx.dirs.indexOf("bin");
+    const testsIdx = ctx.dirs.indexOf("tests");
+    // src comes before bin, bin comes before tests in layout order
+    expect(srcIdx).toBeLessThan(binIdx);
+    expect(binIdx).toBeLessThan(testsIdx);
+  });
+
+  test("reads entryPoint from package.json main field", async () => {
+    const ctx = await scanRepo(join(FIXTURES, "full"));
+    expect(ctx.entryPoint).toBe("src/index.ts");
+  });
+
+  test("reads binEntries from package.json bin object", async () => {
+    const ctx = await scanRepo(join(FIXTURES, "full"));
+    expect(ctx.binEntries).toEqual({ "full-cli": "bin/cli.ts" });
+  });
+
+  test("returns empty dirs for minimal fixture", async () => {
+    const ctx = await scanRepo(join(FIXTURES, "minimal"));
+    expect(ctx.dirs).toEqual([]);
+  });
+
+  test("returns undefined entryPoint for minimal fixture", async () => {
+    const ctx = await scanRepo(join(FIXTURES, "minimal"));
+    expect(ctx.entryPoint).toBeUndefined();
+  });
+
+  test("returns empty binEntries for minimal fixture", async () => {
+    const ctx = await scanRepo(join(FIXTURES, "minimal"));
+    expect(ctx.binEntries).toEqual({});
+  });
+
+  test("handles string bin field in package.json", async () => {
+    // Create a temp fixture with a string bin field
+    const { mkdtemp, writeFile, mkdir } = await import("fs/promises");
+    const { tmpdir } = await import("os");
+    const tmp = await mkdtemp(tmpdir() + "/scanner-test-");
+    await writeFile(
+      join(tmp, "package.json"),
+      JSON.stringify({ name: "my-tool", bin: "bin/index.ts" }),
+    );
+    const ctx = await scanRepo(tmp);
+    expect(ctx.binEntries).toEqual({ "my-tool": "bin/index.ts" });
+  });
+});

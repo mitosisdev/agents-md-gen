@@ -19,6 +19,19 @@ const SCRIPT_LABELS: Record<string, string> = {
   deploy: "Deploy",
 };
 
+/** Human-readable labels for well-known layout directories. */
+const DIR_LABELS: Record<string, string> = {
+  src: "main source tree",
+  lib: "compiled/library output",
+  packages: "monorepo packages",
+  apps: "monorepo apps",
+  bin: "CLI entrypoints",
+  cli: "CLI entrypoints",
+  tests: "test suite",
+  test: "test suite",
+  docs: "documentation",
+};
+
 function section(header: string, body: string): string {
   return `## ${header}\n${REVIEW_COMMENT}\n${body}\n`;
 }
@@ -59,7 +72,6 @@ function commands(ctx: RepoContext): string {
   const lines: string[] = [];
   for (const [key, cmd] of entries) {
     const label = SCRIPT_LABELS[key] ?? key;
-    const runnerPrefix = ctx.runtime === "bun" ? "bun run" : "npm run";
     const invokeAs =
       ctx.runtime === "bun"
         ? `bun run ${key}`
@@ -73,21 +85,37 @@ function commands(ctx: RepoContext): string {
 function architecture(ctx: RepoContext): string {
   const lines: string[] = [];
 
-  if (ctx.srcFiles.length > 0) {
-    lines.push("**src/ contents:**");
-    for (const f of ctx.srcFiles) {
-      lines.push(`- \`src/${f}\``);
+  // Directory layout
+  if (ctx.dirs.length > 0) {
+    for (const d of ctx.dirs) {
+      const label = DIR_LABELS[d] ?? d;
+      lines.push(`- **${capitalise(label)}:** \`${d}/\``);
     }
   } else {
-    lines.push("_No src/ directory found._");
+    lines.push("_No standard directories detected._");
   }
 
-  if (ctx.devDependencies.length > 0) {
-    lines.push("", "**Dev dependencies:**");
-    lines.push(ctx.devDependencies.map((d) => `\`${d}\``).join(", "));
+  // Entry point (from package.json main/module)
+  if (ctx.entryPoint) {
+    lines.push(`- **Entry point:** \`${ctx.entryPoint}\` (from package.json \`main\`)`);
+  }
+
+  // CLI bin entries
+  const binItems = Object.entries(ctx.binEntries);
+  if (binItems.length === 1) {
+    const [, binPath] = binItems[0];
+    lines.push(`- **CLI:** \`${binPath}\` (from package.json \`bin\`)`);
+  } else if (binItems.length > 1) {
+    for (const [binName, binPath] of binItems) {
+      lines.push(`- **CLI (\`${binName}\`):** \`${binPath}\` (from package.json \`bin\`)`);
+    }
   }
 
   return section("Architecture", lines.join("\n"));
+}
+
+function capitalise(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function keyConventions(ctx: RepoContext): string {

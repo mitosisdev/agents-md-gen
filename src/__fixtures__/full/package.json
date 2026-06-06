@@ -2,6 +2,10 @@
   "name": "full-pkg",
   "version": "2.3.4",
   "description": "A full-featured package",
+  "main": "src/index.ts",
+  "bin": {
+    "full-cli": "bin/cli.ts"
+  },
   "scripts": {
     "test": "bun test",
     "build": "bun run build.ts",
