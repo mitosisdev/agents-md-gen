@@ -3,6 +3,12 @@
   "version": "0.0.1",
   "private": false,
   "type": "module",
+  "bin": {
+    "agents-md-gen": "./src/cli.ts"
+  },
+  "files": [
+    "src/"
+  ],
   "scripts": {
     "test": "bun test"
   }
